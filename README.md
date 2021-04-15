@@ -1,11 +1,7 @@
-nfs-server-docker
-============
-
-Dockerfile source for nfs-server [docker](https://docker.io) image.
+# Disclaimer
+⚠️ For **testing** and **experimental** purposes only.
+This image should not be used for production purposes. ⚠️
 
 # Upstream
 This source repo was originally based on:
-https://github.com/kubernetes/kubernetes/tree/master/test/images/volume/nfs
-
-# Disclaimer
-This is not an official Google product.
+https://github.com/GoogleCloudPlatform/nfs-server-docker
