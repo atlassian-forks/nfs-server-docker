@@ -13,16 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM gcr.io/google-appengine/debian9
+FROM centos:latest
 
-ENV NFS_VERSION 1:1.3.4-2.1
-
-ENV C2D_RELEASE 1.3.4
-
-RUN set -x && \
-    apt-get update && apt-get install -qq -y nfs-kernel-server=${NFS_VERSION}* && \
-    rm -rf /var/lib/apt/lists/* && \
-    mkdir /exports
+RUN yum -y install /usr/bin/ps nfs-utils && yum clean all
+RUN mkdir -p /exports
 
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +rx /usr/local/bin/docker-entrypoint.sh
@@ -31,6 +25,7 @@ VOLUME /exports
 
 EXPOSE 2049/tcp
 EXPOSE 20048/tcp
+EXPOSE 43515/tcp
 
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
-CMD ["/exports"]
+CMD ["/exports", "/"]

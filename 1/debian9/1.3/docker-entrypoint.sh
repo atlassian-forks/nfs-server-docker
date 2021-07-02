@@ -1,4 +1,7 @@
 #!/bin/bash
+
+# DCKUBE-436: nfs-should-use-service
+
 # Copyright 2015 The Kubernetes Authors.
 # Copyright 2018 Google LLC
 #
@@ -16,6 +19,7 @@
 
 function start()
 {
+
     unset gid
     # accept "-G gid" option
     while getopts "G:" opt; do
@@ -28,19 +32,19 @@ function start()
     # prepare /etc/exports
     for i in "$@"; do
         # fsid=0: needed for NFSv4
-        echo "$i *(rw,fsid=0,sync,no_subtree_check,no_root_squash)" >> /etc/exports
+        echo "$i *(rw,fsid=0,insecure,no_root_squash)" >> /etc/exports
         if [ -v gid ] ; then
             chmod 070 $i
             chgrp $gid $i
         fi
         echo "Serving $i"
     done
-
+  
     # start rpcbind if it is not started yet
     /usr/sbin/rpcinfo 127.0.0.1 > /dev/null; s=$?
     if [ $s -ne 0 ]; then
        echo "Starting rpcbind"
-       /sbin/rpcbind -w
+       /usr/sbin/rpcbind -w
     fi
 
     mount -t nfsd nfds /proc/fs/nfsd
@@ -51,7 +55,7 @@ function start()
     /usr/sbin/exportfs -r
     # -G 10 to reduce grace time to 10 seconds (the lowest allowed)
     /usr/sbin/rpc.nfsd -G 10 -N 2 -V 3
-    /sbin/rpc.statd --no-notify
+    /usr/sbin/rpc.statd --no-notify
     echo "NFS started"
 }
 
@@ -68,6 +72,7 @@ function stop()
     echo > /etc/exports
     exit 0
 }
+
 
 trap stop TERM
 
