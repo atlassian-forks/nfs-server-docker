@@ -15,16 +15,22 @@
 
 FROM centos:latest
 
-RUN yum -y install /usr/bin/ps nfs-utils && yum clean all
+RUN yum -y install \
+    /usr/bin/ps \
+    /usr/bin/socat \
+    /usr/bin/xxd \
+    nfs-utils \
+    && yum clean all
 RUN mkdir -p /exports
 
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +rx /usr/local/bin/docker-entrypoint.sh
 
-VOLUME /exports
-
 EXPOSE 2049/tcp
+EXPOSE 2049/udp
 EXPOSE 20048/tcp
+EXPOSE 20048/udp
+EXPOSE 111/tcp
+EXPOSE 111/udp
 
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
-CMD ["/exports", "/"]
