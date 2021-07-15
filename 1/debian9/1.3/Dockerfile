@@ -16,12 +16,14 @@
 FROM centos:latest
 
 RUN yum -y install \
+    centos-release-nfs-ganesha30 \
+    && yum -y install \
+    /usr/bin/strace \
+    nfs-ganesha \
+    nfs-ganesha-vfs \
     /usr/bin/ps \
-    /usr/bin/socat \
-    /usr/bin/xxd \
     nfs-utils \
     && yum clean all
-RUN mkdir -p /exports
 
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +rx /usr/local/bin/docker-entrypoint.sh
