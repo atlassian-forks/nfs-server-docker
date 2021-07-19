@@ -18,7 +18,6 @@ FROM centos:latest
 RUN yum -y install \
     centos-release-nfs-ganesha30 \
     && yum -y install \
-    /usr/bin/strace \
     nfs-ganesha \
     nfs-ganesha-vfs \
     /usr/bin/ps \
