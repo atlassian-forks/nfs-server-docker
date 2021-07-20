@@ -35,3 +35,4 @@ EXPOSE 111/tcp
 EXPOSE 111/udp
 
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+CMD ["start"]

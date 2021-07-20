@@ -24,17 +24,17 @@ set -euo pipefail
 : "${LOCKD_PORT:=32767}"
 : "${EXPORT_PATH:=/srv/nfs}"
 
-function start()
-{
-    if ! rpcinfo 127.0.0.1 > /dev/null 2>&1; then
-       echo "Starting rpcbind..."
-       rpcbind -s -d
-    fi
+function start() {
+  if ! rpcinfo 127.0.0.1 >/dev/null 2>&1; then
+    echo "Starting rpcbind..."
+    rpcbind -s -d
+  fi
 
-    rpc.statd --no-notify --port "${STATD_PORT}" --outgoing-port "${STATD_PORT_OUT}" --no-syslog --foreground &
+  rpc.statd --no-notify --port "${STATD_PORT}" --outgoing-port "${STATD_PORT_OUT}" --no-syslog --foreground &
 
-    local ganesha_config
-    ganesha_config="$(cat <<EOF
+  local ganesha_config
+  ganesha_config="$(
+    cat <<EOF
 ###################################################
 #
 # EXPORT
@@ -78,24 +78,75 @@ NFSV4
 #  }
 #}
 EOF
+  )"
+
+  cat >/ganesha.conf <<<"$ganesha_config"
+  mkdir -p "$EXPORT_PATH"
+
+  ganesha.nfsd -F -f /ganesha.conf -L /dev/stdout &
+}
+
+function stop() {
+  echo "Stopping NFS"
+
+  kill $(pidof ganesha.nfsd) 2>/dev/null || true
+  kill $(pidof rpc.statd) 2>/dev/null || true
+  kill $(pidof rpcbind) 2>/dev/null || true
+}
+
+function healthcheck() {
+  for proc in ganesha.nfsd rpc.statd rpcbind; do
+    if [[ -z "$(pidof $proc)" ]]; then echo "Healthcheck failed: $proc is not running" >&2; exit 1; fi
+  done
+  local expected_rpcinfo
+  expected_rpcinfo="$(cat <<EOF
+1 tcp $MOUNTD_PORT mountd
+1 tcp $STATD_PORT status
+1 tcp 875 rquotad
+1 udp $MOUNTD_PORT mountd
+1 udp $STATD_PORT status
+1 udp 875 rquotad
+2 tcp 111 portmapper
+2 tcp 875 rquotad
+2 udp 111 portmapper
+2 udp 875 rquotad
+3 tcp 111 portmapper
+3 tcp $MOUNTD_PORT mountd
+3 tcp $NFS_PORT nfs
+3 udp 111 portmapper
+3 udp $MOUNTD_PORT mountd
+3 udp $NFS_PORT nfs
+4 tcp 111 portmapper
+4 tcp $NFS_PORT nfs
+4 tcp $LOCKD_PORT nlockmgr
+4 udp 111 portmapper
+4 udp $NFS_PORT nfs
+4 udp $LOCKD_PORT nlockmgr
+EOF
 )"
-
-    cat > /ganesha.conf <<<"$ganesha_config"
-    mkdir -p "$EXPORT_PATH"
-
-    ganesha.nfsd -F -f /ganesha.conf -L /dev/stdout &
+  local actual_rpcinfo
+  actual_rpcinfo="$(rpcinfo -p | tail -n+2 | awk '{ print $2 " " $3 " " $4 " " $5 }' | sort)"
+  local difference
+  difference="$(diff -Naur <(cat <<<"$expected_rpcinfo") <(cat <<<"$actual_rpcinfo"))"
+  if [[ -n "$difference" ]]; then
+    echo "rpcinfo services different from what's expected:"
+    echo "$difference"
+    exit 1
+  fi
 }
 
-function stop()
-{
-    echo "Stopping NFS"
 
-    kill $( pidof ganesha.nfsd ) 2>/dev/null || true
-    kill $( pidof rpc.statd ) 2>/dev/null || true
-    kill $( pidof rpcbind ) 2>/dev/null || true
-}
-
-trap stop TERM INT HUP USR1 USR2
-start "$@"
-
-tail -f /dev/null & wait $!
+case "${1-}" in
+stop)
+  stop
+  ;;
+healthcheck)
+  healthcheck
+  ;;
+start)
+  trap stop TERM INT HUP USR1 USR2
+  start
+  tail -f /dev/null &
+  wait $!
+  ;;
+esac
