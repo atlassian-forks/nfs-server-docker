@@ -8,4 +8,12 @@ https://github.com/GoogleCloudPlatform/nfs-server-docker
 
 # How to build
 
-    docker build -t atlassian/nfs-server-test .
+    make build
+
+To tag the image differently, you can specify either the `image` or `tag` variable:
+
+    make build image=myown/nfs tag=3.0
+
+# How to publish
+
+    make
