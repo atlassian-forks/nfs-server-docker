@@ -1,0 +1,9 @@
+# IDE files
+.idea
+*.iml
+.vscode
+
+# Makefile state files
+.build
+.push
+.vars
