@@ -23,6 +23,7 @@ set -euo pipefail
 : "${STATD_PORT_OUT:=32766}"
 : "${LOCKD_PORT:=32767}"
 : "${EXPORT_PATH:=/srv/nfs}"
+: "${DEBUG:=false}"
 
 function start() {
   if ! rpcinfo 127.0.0.1 >/dev/null 2>&1; then
@@ -31,6 +32,18 @@ function start() {
   fi
 
   rpc.statd --no-notify --port "${STATD_PORT}" --outgoing-port "${STATD_PORT_OUT}" --no-syslog --foreground &
+
+  local debug_config=""
+  if [[ "${DEBUG}" = true ]]; then
+    debug_config="$(cat <<EOF
+LOG {
+  COMPONENTS {
+    ALL = Full_Debug;
+  }
+}
+EOF
+    )"
+  fi
 
   local ganesha_config
   ganesha_config="$(
@@ -72,11 +85,7 @@ NFSV4
 {
 	Grace_Period = 90;
 }
-# LOG {
-#  COMPONENTS {
-#    ALL = Full_Debug;
-#  }
-#}
+$debug_config
 EOF
   )"
 
